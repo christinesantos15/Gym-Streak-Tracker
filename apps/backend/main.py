@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, SQLModel, create_engine, Session, select, desc
 
 # Connects to the PostgreSQL container managed by Docker Compose
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:secretpassword@postgres:5432/gym_tracker")
+# 🟢 CHANGE THIS LINE SO IT SAYS @db TO MATCH YOUR COMPOSE FILE
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:secretpassword@db:5432/gym_tracker")
 engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
