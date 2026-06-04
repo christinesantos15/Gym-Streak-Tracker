@@ -17,7 +17,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.EC2_HOST }}          # Your EC2 Public IP address
-          username: ${{ secrets.EC2_USERNAME }}  # Usually 'ubuntu' or 'ec2-user'
+          username: ${{ secrets.EC2_USER }}  # Usually 'ubuntu' or 'ec2-user'
           key: ${{ secrets.EC2_SSH_KEY }}       # Your private .pem key file content
           port: 22
           script: |
