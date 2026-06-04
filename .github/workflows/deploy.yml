@@ -3,32 +3,58 @@ name: CI/CD Deployment to AWS EC2
 on:
   push:
     branches:
-      - main  # Triggers the pipeline every time you push code to the main branch
+      - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code from GitHub
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log into AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, Tag, and Push Image to ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: gym-streak-frontend
+          IMAGE_TAG: latest
+        run: |
+          # The --target frontend tells Docker to build only the Nginx/React portion
+          docker build --target frontend -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
       - name: Deploy to AWS EC2 via SSH
-        uses: appleboy/ssh-action@v0.1.10
+        uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}          # Your EC2 Public IP address
-          username: ${{ secrets.EC2_USER }}  # Usually 'ubuntu' or 'ec2-user'
-          key: ${{ secrets.EC2_SSH_KEY }}       # Your private .pem key file content
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
-            # 1. Navigate to your project directory on the EC2 instance
-            cd ~/Gym-Streak-Tracker || git clone https://github.com/${{ github.repository }}.git ~/Gym-Streak-Tracker && cd ~/Gym-Streak-Tracker
-            
-            # 2. Pull the absolute latest code changes from your repository
-            git pull origin main
-            
-            # 3. Shut down any old running containers to free up the ports
-            docker compose down
-            
-            # 4. Rebuild and launch the brand new container ecosystem in background mode
-            docker compose up --build -d
+            aws ecr get-login-password --region ${{ secrets.AWS_REGION }} | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/gym-streak-frontend:latest
+            docker stop gym-streak-frontend-container || true
+            docker rm gym-streak-frontend-container || true
+            docker run -d \
+              --name gym-streak-frontend-container \
+              -p 80:80 \
+              --restart always \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/gym-streak-frontend:latest

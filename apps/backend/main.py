@@ -5,6 +5,8 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, SQLModel, create_engine, Session, select, desc
 
+from fastapi.staticfiles import StaticFiles
+
 # Connects to the PostgreSQL container managed by Docker Compose
 # 🟢 CHANGE THIS LINE SO IT SAYS @db TO MATCH YOUR COMPOSE FILE
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:secretpassword@db:5432/gym_tracker")
@@ -90,3 +92,11 @@ def delete_workout(workout_id: int, session: Session = Depends(get_session)):
     session.delete(db_workout)
     session.commit()
     return {"message": f"Successfully deleted workout log {workout_id}"}
+
+# Assuming your 'index.html' file is inside a folder named 'frontend'
+# on your EC2 instance.
+app.mount(
+    "/", 
+    StaticFiles(directory="frontend", html=True), 
+    name="frontend"
+)
