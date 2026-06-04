@@ -45,7 +45,7 @@ jobs:
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: "52.74.115.60"
-          username: ${{ secretss.EC2_USER }}
+          username: "intern-c"
           key: ${{ secrets.EC2_SSH_KEY }}
           port: 22
           script: |
