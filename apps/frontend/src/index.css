@@ -1,1 +1,6 @@
-@import "tailwindcss";
+/* FIX: Replace everything in your main CSS file with these three lines */
+@theme; /* Only if you are using Tailwind v4, otherwise use the v3 directives below */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

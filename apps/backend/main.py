@@ -4,12 +4,10 @@ from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, SQLModel, create_engine, Session, select, desc
-
 from fastapi.staticfiles import StaticFiles
 
-# Connects to the PostgreSQL container managed by Docker Compose
-# 🟢 CHANGE THIS LINE SO IT SAYS @db TO MATCH YOUR COMPOSE FILE
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:secretpassword@db:5432/gym_tracker")
+# 🟢 FIXED: Points to @postgres to match your Docker Compose service name!
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:secretpassword@postgres:5432/gym_tracker")
 engine = create_engine(DATABASE_URL, echo=True)
 
 def get_session():
@@ -81,8 +79,7 @@ def calculate_streak(session: Session = Depends(get_session)):
 
     return StreakResponse(current_streak=streak, last_workout_date=unique_dates[0].strftime("%Y-%m-%d"))
 
-# Add this endpoint at the very end of apps/backend/main.py
-
+# CRUD: Delete a specific log entry
 @app.delete("/workouts/{workout_id}")
 def delete_workout(workout_id: int, session: Session = Depends(get_session)):
     db_workout = session.get(WorkoutLog, workout_id)
@@ -93,10 +90,12 @@ def delete_workout(workout_id: int, session: Session = Depends(get_session)):
     session.commit()
     return {"message": f"Successfully deleted workout log {workout_id}"}
 
-# Assuming your 'index.html' file is inside a folder named 'frontend'
-# on your EC2 instance.
-app.mount(
-    "/", 
-    StaticFiles(directory="frontend", html=True), 
-    name="frontend"
-)
+# 🌟 FIXED: Old duplicate app.mount removed. Only the safe fallback check remains!
+if os.path.exists("frontend"):
+    app.mount(
+        "/", 
+        StaticFiles(directory="frontend", html=True), 
+        name="frontend"
+    )
+else:
+    print("👉 Frontend directory not found. Static hosting skipped for local API mode.")

@@ -18,19 +18,25 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
+      context: .                 
+      dockerfile: Dockerfile     
+      target: backend            
     container_name: gym_backend
     ports:
       - "8085:8000"
     environment:
       - DATABASE_URL=postgresql://postgres:secretpassword@postgres:5432/gym_tracker
+    volumes:
+      - ./apps/backend:/app
     depends_on:
       postgres:
         condition: service_healthy
 
   frontend:
     build:
-      context: ./apps/frontend
+      context: .                 
+      dockerfile: Dockerfile     
+      target: frontend           
     container_name: gym_frontend
     ports:
       - "3005:80"
